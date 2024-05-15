@@ -10,7 +10,11 @@ def ethernet_frame(data):
     return get_mac_addr(dest_mac_address), get_mac_addr(src_mac_address), socket.htons(protocol), data[14:]
 
 
+# kthimi i mac adreses ne format qe mundet me u lexu prej njeriut
 
+def get_mac_addr(bytes_addr):
+    bytes_str = map('{:02x}'.format, bytes_addr)
+    return ':'.join(bytes_str).upper()
 
 
 
