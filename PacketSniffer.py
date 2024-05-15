@@ -23,6 +23,46 @@ def main():
         dest_mac, src_mac, eth_protocol, data = ethernet_frame(raw_data)
         print('\nEthernet frame:')
         print(TAB_1 + 'Destination: {}, Source: {}, Protocol: {},'. format(dest_mac, src_mac, eth_protocol))
+#Displaying packet data:
+        #8 for IPv4
+        if eth_protocol == 8:
+            (version, header_length, ttl, proto, src, target, data) = ipv4_packet(data)
+            print(TAB_1 + 'IPv4 Packet:')
+            print(TAB_2 + 'Version: {}, Header Length: {}, TTL: {},'.format(version, header_length, ttl))
+            print(TAB_2 + 'Protocol: {}, Source: {}, Target: {}'.format(proto, src, target))
+
+            #ICMP
+            if proto == 1:
+                icmp_type, code, checksum, data, = icmp_packet(data)
+                print(TAB_1 + 'ICMP Packet:')
+                print(TAB_2 + 'Type: {}, Code: {}, Checksum: {},'.format(icmp_type, code, checksum))
+                print(TAB_2 + 'Data:')
+                print(format_multi_line(DATA_TAB_3, data))
+            #TCP
+            elif proto == 6:
+                (src_port, dest_port, sequence, acknowledgment, flag_urg, flag_ack, flag_psh, flag_rst, flag_syn, flag_fin, data) = tcp_segment(data)
+                print(TAB_1 + 'TCP Segment:')
+                print(TAB_2 + 'Source Port: {}, Destination Port: {}'.format(src_port, dest_port))
+                print(TAB_2 + 'Sequence: {}, Acknowledgment: {}'.format(sequence, acknowledgment))
+                print(TAB_2 + 'Flags:')
+                print(TAB_3 + 'URG: {}, ACK: {}, PSH: {}'.format(flag_urg, flag_ack, flag_psh))
+                print(TAB_3 + 'RST: {}, SYN: {}, FIN:{}'.format(flag_rst, flag_syn, flag_fin))
+                print(TAB_2 + 'Data:')
+                print(format_multi_line(DATA_TAB_3, data))
+
+            #UDP
+            elif proto == 17:
+                src_port, dest_port, length, data = udp_segment(data)
+                print(TAB_1 + 'UDP Segment:')
+                print(TAB_2 + 'Source Port: {}, Destination Port: {}, Length {}'.format(src_port,dest_port, length))
+
+            #Other
+            else:
+                print(TAB_1 +'Data')
+                print(format_multi_line(DATA_TAB_2, data))
+        else:
+            print('Ethernet Data:')
+            print(format_multi_line(DATA_TAB_1, data))
 
 #depaketimi i ethernet frame
 
