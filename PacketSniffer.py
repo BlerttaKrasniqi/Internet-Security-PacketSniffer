@@ -2,6 +2,14 @@ import socket
 import struct
 import textwrap
 
+def main():
+    conncetion = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(3))
+    
+    while True:
+        raw_data, addr = conncetion.recvfrom(65536)
+        dest_mac, src_mac, eth_protocol, data = ethernet_frame(raw_data)
+        print('\nEthernet frame:')
+        print('Destination: {}, Source: {}, Protocol: {},'. format(dest_mac, src_mac, eth_protocol))
 #depaketimi i ethernet frame
 
 def ethernet_frame(data):
