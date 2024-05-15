@@ -2,6 +2,17 @@ import socket
 import struct
 import textwrap
 
+#for multi-line formatting:
+TAB_1 = '\t - '
+TAB_2 = '\t\t - '
+TAB_3 = '\t\t\t - '
+TAB_4 = '\t\t\t\t - '
+
+DATA_TAB_1 = '\t   '
+DATA_TAB_2 = '\t\t   '
+DATA_TAB_3 = '\t\t\t   '
+DATA_TAB_4 = '\t\t\t\t   '
+
 def main():
     connection = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IP)
     connection.bind(('0.0.0.0', 0))
@@ -11,7 +22,8 @@ def main():
         raw_data, addr = connection.recvfrom(65536)
         dest_mac, src_mac, eth_protocol, data = ethernet_frame(raw_data)
         print('\nEthernet frame:')
-        print('Destination: {}, Source: {}, Protocol: {},'. format(dest_mac, src_mac, eth_protocol))
+        print(TAB_1 + 'Destination: {}, Source: {}, Protocol: {},'. format(dest_mac, src_mac, eth_protocol))
+
 #depaketimi i ethernet frame
 
 def ethernet_frame(data):
@@ -37,6 +49,39 @@ def ipv4_packet(data):
 #formatimi i IPv4 adreses
 def ipv4(addr):
     return '.'.join(map(str, addr))
+
+#Unpack ICMP packet
+#data[:4] grab first 4 bytes(header)
+#data[4:] grab everything after 4th byte (payload)
+def icmp_packet(data):
+    icmp_type, code, checksum = struct.unpack('! B B H', data[:4])
+    return icmp_type, code, checksum, data[4:]
+
+#Unpack TCP segment
+def tcp_segment(data):
+    (src_port, dest_port, sequence, acknowledgment, offset_reserved_flags) = struct.unpack('! H H L L H', data[:14])
+    offset = (offset_reserved_flags >> 12) * 4
+    flag_urg = (offset_reserved_flags & 32) >> 5
+    flag_ack = (offset_reserved_flags & 16) >> 4
+    flag_psh = (offset_reserved_flags & 8) >> 3
+    flag_rst = (offset_reserved_flags & 4) >> 2
+    flag_syn = (offset_reserved_flags & 2) >> 1
+    flag_fin = offset_reserved_flags & 1
+    return src_port, dest_port, sequence, acknowledgment, flag_urg,flag_ack, flag_psh, flag_rst, flag_syn, flag_fin, data[offset:]
+
+#Unpack UDP segment
+def udp_segment(data):
+    src_port, dest_port, size = struct.unpack('! H H 2x H', data[:8])
+    return src_port, dest_port, size, data[8:]
+
+#Format multi-line data (not sniffing related)
+def format_multi_line(prefix, string, size=80):
+    size -= len(prefix)
+    if isinstance(string, bytes):
+        string = ''.join(r'\x{:02x}'.format(byte) for byte in string)
+        if size % 2:
+            size -= 1
+    return '\n'.join([prefix + line for line in textwrap.wrap(string, size)])
 
 if __name__ == "__main__":
     main()
