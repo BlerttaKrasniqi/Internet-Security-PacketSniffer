@@ -21,8 +21,50 @@ def main():
     while True:
         raw_data, addr = connection.recvfrom(65536)
         dest_mac, src_mac, eth_protocol, data = ethernet_frame(raw_data)
-        print('\nEthernet frame:')
+        print('\nEthernet frame(firstt):')
         print(TAB_1 + 'Destination: {}, Source: {}, Protocol: {},'. format(dest_mac, src_mac, eth_protocol))
+#Displaying packet data:
+        #8 for IPv4
+        if eth_protocol == 8:
+            (version, header_length, ttl, proto, src, target, data) = ipv4_packet(data)
+            print(TAB_1 + 'IPv4 Packet:')
+            print(TAB_2 + 'Version: {}, Header Length: {}, TTL: {},'.format(version, header_length, ttl))
+            print(TAB_2 + 'Protocol: {}, Source: {}, Target: {}'.format(proto, src, target))
+
+            #ICMP
+            if proto == 1:
+                icmp_type, code, checksum, data, = icmp_packet(data)
+                print(TAB_1 + 'ICMP Packet:')
+                print(TAB_2 + 'Type: {}, Code: {}, Checksum: {},'.format(icmp_type, code, checksum))
+                print(TAB_2 + 'Data:')
+                print(format_multi_line(DATA_TAB_3, data))
+            # Inside the condition where IPv4 protocol is identified
+            if proto == 6:  # TCP
+                src_port, dest_port, sequence, acknowledgment, flag_urg, flag_ack, flag_psh, flag_rst, flag_syn, flag_fin, data = tcp_segment(
+                    data)
+                print(TAB_1 + 'TCP Segment:')
+                print(TAB_2 + 'Source Port: {}, Destination Port: {}'.format(src_port, dest_port))
+                print(TAB_2 + 'Sequence: {}, Acknowledgment: {}'.format(sequence, acknowledgment))
+                print(TAB_2 + 'Flags:')
+                print(TAB_3 + 'URG: {}, ACK: {}, PSH: {}'.format(flag_urg, flag_ack, flag_psh))
+                print(TAB_3 + 'RST: {}, SYN: {}, FIN:{}'.format(flag_rst, flag_syn, flag_fin))
+                print(TAB_2 + 'Data:')
+                print(format_multi_line(DATA_TAB_3, data))
+
+            elif proto == 17:  # UDP
+                src_port, dest_port, length, data = udp_segment(data)
+                print(TAB_1 + 'UDP Segment:')
+                print(TAB_2 + 'Source Port: {}, Destination Port: {}, Length {}'.format(src_port, dest_port, length))
+                print(TAB_2 + 'Data:')
+                print(format_multi_line(DATA_TAB_3, data))
+
+            #Other
+            else:
+                print(TAB_1 +'Data')
+                print(format_multi_line(DATA_TAB_2, data))
+        else:
+            print('Ethernet Data:')
+            print(format_multi_line(DATA_TAB_1, data))
 
 #depaketimi i ethernet frame
 
@@ -44,6 +86,7 @@ def ipv4_packet(data):
     version = version_header_length >> 4
     header_length = (version_header_length & 15) * 4
     ttl, ip_protocol, src, target = struct.unpack('! 8x B B 2x 4s 4s', data[:20])
+    print("IP Protocol Number (hex):", hex(ip_protocol))
     return version, header_length, ttl, ip_protocol, ipv4(src), ipv4(target), data[header_length:]
 
 #formatimi i IPv4 adreses
