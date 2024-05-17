@@ -21,7 +21,7 @@ def main():
     while True:
         raw_data, addr = connection.recvfrom(65536)
         dest_mac, src_mac, eth_protocol, data = ethernet_frame(raw_data)
-        print('\nEthernet frame:')
+        print('\nEthernet frame(firstt):')
         print(TAB_1 + 'Destination: {}, Source: {}, Protocol: {},'. format(dest_mac, src_mac, eth_protocol))
 #Displaying packet data:
         #8 for IPv4
@@ -38,9 +38,10 @@ def main():
                 print(TAB_2 + 'Type: {}, Code: {}, Checksum: {},'.format(icmp_type, code, checksum))
                 print(TAB_2 + 'Data:')
                 print(format_multi_line(DATA_TAB_3, data))
-            #TCP
-            elif proto == 6:
-                (src_port, dest_port, sequence, acknowledgment, flag_urg, flag_ack, flag_psh, flag_rst, flag_syn, flag_fin, data) = tcp_segment(data)
+            # Inside the condition where IPv4 protocol is identified
+            if proto == 6:  # TCP
+                src_port, dest_port, sequence, acknowledgment, flag_urg, flag_ack, flag_psh, flag_rst, flag_syn, flag_fin, data = tcp_segment(
+                    data)
                 print(TAB_1 + 'TCP Segment:')
                 print(TAB_2 + 'Source Port: {}, Destination Port: {}'.format(src_port, dest_port))
                 print(TAB_2 + 'Sequence: {}, Acknowledgment: {}'.format(sequence, acknowledgment))
@@ -50,11 +51,12 @@ def main():
                 print(TAB_2 + 'Data:')
                 print(format_multi_line(DATA_TAB_3, data))
 
-            #UDP
-            elif proto == 17:
+            elif proto == 17:  # UDP
                 src_port, dest_port, length, data = udp_segment(data)
                 print(TAB_1 + 'UDP Segment:')
-                print(TAB_2 + 'Source Port: {}, Destination Port: {}, Length {}'.format(src_port,dest_port, length))
+                print(TAB_2 + 'Source Port: {}, Destination Port: {}, Length {}'.format(src_port, dest_port, length))
+                print(TAB_2 + 'Data:')
+                print(format_multi_line(DATA_TAB_3, data))
 
             #Other
             else:
@@ -84,6 +86,7 @@ def ipv4_packet(data):
     version = version_header_length >> 4
     header_length = (version_header_length & 15) * 4
     ttl, ip_protocol, src, target = struct.unpack('! 8x B B 2x 4s 4s', data[:20])
+    print("IP Protocol Number (hex):", hex(ip_protocol))
     return version, header_length, ttl, ip_protocol, ipv4(src), ipv4(target), data[header_length:]
 
 #formatimi i IPv4 adreses
