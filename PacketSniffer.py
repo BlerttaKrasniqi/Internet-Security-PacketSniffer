@@ -107,21 +107,116 @@ def process_icmp(data):
 
 
 #Unpack TCP segment
-def tcp_segment(data):
-    (src_port, dest_port, sequence, acknowledgment, offset_reserved_flags) = struct.unpack('! H H L L H', data[:14])
+
+def process_tcp(data):
+    # Process TCP packet
+    src_port, dest_port, sequence, acknowledgment, offset_reserved_flags = struct.unpack('! H H L L H', data[:14])
     offset = (offset_reserved_flags >> 12) * 4
-    flag_urg = (offset_reserved_flags & 32) >> 5
-    flag_ack = (offset_reserved_flags & 16) >> 4
-    flag_psh = (offset_reserved_flags & 8) >> 3
-    flag_rst = (offset_reserved_flags & 4) >> 2
-    flag_syn = (offset_reserved_flags & 2) >> 1
-    flag_fin = offset_reserved_flags & 1
-    return src_port, dest_port, sequence, acknowledgment, flag_urg,flag_ack, flag_psh, flag_rst, flag_syn, flag_fin, data[offset:]
+    flags = {
+        "URG": (offset_reserved_flags & 32) >> 5,
+        "ACK": (offset_reserved_flags & 16) >> 4,
+        "PSH": (offset_reserved_flags & 8) >> 3,
+        "RST": (offset_reserved_flags & 4) >> 2,
+        "SYN": (offset_reserved_flags & 2) >> 1,
+        "FIN": offset_reserved_flags & 1
+    }
+    protocol = "Unknown"
+    if (dest_port >= 1 and dest_port <= 1023) or (src_port >= 1 and src_port <=1023):
+        protocol = process_well_known_port(dest_port)
+    
+    return acknowledgment, sequence, flags, protocol, src_port, dest_port, data[offset:]   
 
 #Unpack UDP segment
-def udp_segment(data):
-    src_port, dest_port, size = struct.unpack('! H H 2x H', data[:8])
-    return src_port, dest_port, size, data[8:]
+def process_udp(data):
+    src_port, dest_port, length, checksum = struct.unpack('! H H H H', data[:8])
+    protocol = "Unknown"
+    if (dest_port >= 1 and dest_port <= 1023) or (src_port >= 1 and src_port <=1023):
+        protocol = process_well_known_port(dest_port)
+
+    return src_port, dest_port, length,protocol, checksum, data[8:]
+
+def process_well_known_port(port):
+    # Map well-known ports to their associated protocols
+    port_protocol_mapping = {
+        1: "TCPMUX",
+        5: "Remote Job Entry",
+        7: "Echo",
+        9: "Discard",
+        11: "SYSTAT",
+        13: "Daytime",
+        15: "Unassigned",
+        17: "Quote of the Day",
+        19: "Character Generator",
+        20: "FTP Data",
+        21: "FTP Control",
+        22: "SSH",
+        23: "Telnet",
+        25: "SMTP",
+        37: "Time",
+        42: "Name Server",
+        43: "Whois",
+        49: "Login Host Protocol",
+        53: "DNS",
+        67: "DHCP Server",
+        68: "DHCP Client",
+        69: "TFTP",
+        70: "Gopher",
+        79: "Finger",
+        80: "HTTP",
+        88: "Kerberos",
+        101: "NIC Host Name Server",
+        102: "ISO-TSAP",
+        107: "Remote Telnet Service",
+        109: "POP2",
+        110: "POP3",
+        111: "Sun Remote Procedure Call",
+        113: "Ident",
+        115: "SFTP",
+        117: "UUCP Path Service",
+        119: "NNTP",
+        123: "NTP",
+        137: "NetBIOS Name Service",
+        138: "NetBIOS Datagram Service",
+        139: "NetBIOS Session Service",
+        143: "IMAP",
+        161: "SNMP",
+        162: "SNMP Trap",
+        179: "BGP",
+        194: "IRC",
+        389: "LDAP",
+        443: "HTTPS",
+        445: "SMB",
+        465: "SMTPS",
+        512: "Remote Process Execution",
+        513: "Rlogin",
+        514: "Syslog",
+        515: "Line Printer Daemon",
+        517: "Talk",
+        518: "NTalk",
+        519: "UUDMP",
+        520: "Routing Information Protocol",
+        525: "Timed",
+        530: "RPC",
+        554: "RTSP",
+        546: "DHCPv6 Client",
+        547: "DHCPv6 Server",
+        548: "AFP",
+        554: "Real Time Streaming Protocol",
+        556: "Remotefs",
+        563: "NNTP over TLS/SSL",
+        587: "SMTP Submission",
+        591: "FileMaker",
+        631: "Internet Printing Protocol",
+        636: "LDAPS",
+        873: "rsync",
+        990: "FTPS",
+        993: "IMAPS",
+        995: "POP3S",
+        # Add more port-protocol mappings as needed
+    }
+
+    return port_protocol_mapping.get(port, "Unknown")
+
 
 #Format multi-line data (not sniffing related)
 def format_multi_line(prefix, string, size=80):
