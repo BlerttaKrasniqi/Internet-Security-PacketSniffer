@@ -14,58 +14,89 @@ DATA_TAB_2 = '\t\t   '
 DATA_TAB_3 = '\t\t\t   '
 DATA_TAB_4 = '\t\t\t\t   '
 
-def main():
-    connection = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IP)
-    connection.bind(('0.0.0.0', 0))
-    connection.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
-    
-    while True:
-        raw_data, addr = connection.recvfrom(65536)
-        dest_mac, src_mac, eth_protocol, data = ethernet_frame(raw_data)                             #////////////
-        print('\nEthernet frame(firstt):')
-        print(TAB_1 + 'Destination: {}, Source: {}, Protocol: {},'. format(dest_mac, src_mac, eth_protocol))
-#Displaying packet data:
-        #8 for IPv4
-        if eth_protocol == 8:
-            (version, header_length, ttl, proto, src, target, data) = ipv4_packet(data)
-            print(TAB_1 + 'IPv4 Packet:')
-            print(TAB_2 + 'Version: {}, Header Length: {}, TTL: {},'.format(version, header_length, ttl))
-            print(TAB_2 + 'Protocol: {}, Source: {}, Target: {}'.format(proto, src, target))
+SIO_RCVALL = 0x98000001
+RCVALL_ON = 1
+RCVALL_OFf = 0
+sniffing = True
 
-            #ICMP
-            if proto == 1:
-                icmp_type, code, checksum, data, = process_icmp(data)
-                print(TAB_1 + 'ICMP Packet:')
-                print(TAB_2 + 'Type: {}, Code: {}, Checksum: {},'.format(icmp_type, code, checksum))
-                print(TAB_2 + 'Data:')
-                print(format_multi_line(DATA_TAB_3, data))
-            # Inside the condition where IPv4 protocol is identified
-            if proto == 6:  # TCP
-                src_port, dest_port, sequence, acknowledgment, flag_urg, flag_ack, flag_psh, flag_rst, flag_syn, flag_fin, data = tcp_segment(
-                    data)
-                print(TAB_1 + 'TCP Segment:')
-                print(TAB_2 + 'Source Port: {}, Destination Port: {}'.format(src_port, dest_port))
-                print(TAB_2 + 'Sequence: {}, Acknowledgment: {}'.format(sequence, acknowledgment))
-                print(TAB_2 + 'Flags:')
-                print(TAB_3 + 'URG: {}, ACK: {}, PSH: {}'.format(flag_urg, flag_ack, flag_psh))
-                print(TAB_3 + 'RST: {}, SYN: {}, FIN:{}'.format(flag_rst, flag_syn, flag_fin))
-                print(TAB_2 + 'Data:')
-                print(format_multi_line(DATA_TAB_3, data))
+def main(interface, callback, stop_event):
+    global sniffing
+    print(f"Received interface name in PacketSniffer.py: {interface}")
 
-            elif proto == 17:  # UDP
-                src_port, dest_port, length, data = udp_segment(data)
-                print(TAB_1 + 'UDP Segment:')
-                print(TAB_2 + 'Source Port: {}, Destination Port: {}, Length {}'.format(src_port, dest_port, length))
-                print(TAB_2 + 'Data:')
-                print(format_multi_line(DATA_TAB_3, data))
+    try:
+        local_ip = netifaces.ifaddresses(interface) [netifaces.AF_INET] [0] ['addr']
+    except KeyError:
+        print(f"Failed to get IP Address for interface {interface}.")
+        return
 
-            #Other
+    try:
+        connection = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IP)
+    except PermissionError as e:
+        print(f"Permission error: {e}. Make sure to run this as an administrator")
+        return
+    except socket.error as e:
+        print(f"Socket error: {e}")
+        return
+
+    try:
+        connection.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 2**30)
+    except socket.error as e:
+        print(f"Failed to set socket buffer size: {e}")
+        return
+
+    print(f"Listening on interface {interface} ({local_ip})...")
+
+    try:
+        connection.bind((local_ip, 0))
+    except socket.error as e:
+        print(f"Failed to bind socket: {e}")
+        return
+
+    try:
+        connection.setsockopt(socket.IPPROTO_IP,socket.IP_HDRINCL,1)
+    except socket.error as e:
+        print(f"Failed to set IP_HDRINCL: {e}")
+        return
+
+    try:
+        connection.ioctl(SIO_RCVALL,RCVALL_ON)
+    except socket.error as e:
+        print(f"Failed to set promiscuous mode: {e}")
+        return
+
+    print("Started packet sniffing...")
+
+    try:
+        while not stop_event.is_set():
+            raw_data,addr = connection.recvfrom(65536)
+            version,header_length,ttl,ip_protocol,src,target,data = ipv4_packet(raw_data)
+            protocol_name = get_protocol_name(ip_protocol)
+            packet_details = f'{version},{header_length},{ttl},{protocol_name},{src},{target}'
+
+            if ip_protocol == 6:
+                tcp_info = process_tcp(data)
+                if callback:
+                    callback(packet_details,tcp_info)
+            elif ip_protocol == 17:
+                udp_info = process_udp(data)
+                if callback:
+                    callback(packet_details,udp_info)
+            elif ip_protocol == 1:
+                icmp_info = process_icmp(data)
+                if callback:
+                    callback(packet_details,icmp_info)
+
             else:
-                print(TAB_1 +'Data')
-                print(format_multi_line(DATA_TAB_2, data))
-        else:
-            print('Ethernet Data:')
-            print(format_multi_line(DATA_TAB_1, data))
+                unknown_protocol_info = handle_unknown_protocol(ip_protocol,header_length)
+                if callback:
+                    callback(packet_details,unknown_protocol_info)
+    finally:
+        connection.ioctl(SIO_RCVALL,RCVALL_OFf)
+        connection.close()
+
+
+
+
 
 #depaketimi i IPv4 paketave
 def ipv4_packet(data):
