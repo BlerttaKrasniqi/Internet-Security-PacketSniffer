@@ -258,6 +258,8 @@ def format_multi_line(prefix, string, size=80):
             size -= 1
     return '\n'.join([prefix + line for line in textwrap.wrap(string, size)])
 
+
+#funksioni per te menaxhuar protokolet qe nuk jane perfshire ne funksionin process_well_known_port
 def handle_unknown_protocol(protocol,data):
     if hasattr(data,'__len__'):
         print(f'Unknown protocol: {protocol}')
