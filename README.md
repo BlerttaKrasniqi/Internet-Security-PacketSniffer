@@ -4,7 +4,7 @@
 ##### _University of Prishtina "Hasan Prishtina"_
 ##### _Faculty of Electrical and Computer Engineering_
 ## Basic Overview
-This project is a comprehensive packet sniffer implemented in Python. It captures and analyzes network packets, displaying detailed information about them. The packet sniffer features a GUI for ease of use, allowing users to start and stop packet sniffing, apply filters, and view packet details.
+This project is a comprehensive packet sniffer implemented in Python for Windows systems. It captures and analyzes network packets, displaying detailed information about them. The packet sniffer features a GUI for ease of use, allowing users to start and stop packet sniffing, apply filters, and view packet details.
 
 ## Features
 - **Capture Packets**: Sniffs network packets on the selected network interface.
@@ -28,20 +28,20 @@ This project is a comprehensive packet sniffer implemented in Python. It capture
 ## Installation and Usage
 
 ### Requirements
-- Python 3.x 
+- Python 3.x (version 3 or higher)
+- Windows operating system
 - Any suitable code editor that supports Python (PyCharm, IntellIJ, Visual Studio Code...)
     ##### Dependencies
     - Python 3.x
     - socket
     - struct
     - netifaces
-    - psutil
     - textwrap
     - tkinter
     
 Install dependencies using pip:
 ```sh
-pip install netifaces psutil
+pip install netifaces
 ```
 ### Steps
 1. Clone this repository
