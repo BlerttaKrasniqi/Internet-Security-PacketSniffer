@@ -44,20 +44,22 @@ class FilterPacketsGUI:
         self.ttl_entry = ttk.Entry(frame_filters, width=15)
         self.ttl_entry.grid(row=5, column=1, padx=5)
 
-        # ACK Filter
-        ttk.Label(frame_filters, text="Filter ACK:").grid(row=6, column=0, sticky=tk.W)
+         # ACK Filter
+        ttk.Label(frame_filters, text="Filter ACK:").grid(row=5, column=0, sticky=tk.W)
         self.ack_entry = ttk.Entry(frame_filters, width=15)
-        self.ack_entry.grid(row=6, column=1, padx=5)
+        self.ack_entry.grid(row=5, column=1, padx=5)
 
-        # SEQ Filter
-        ttk.Label(frame_filters, text="Filter SEQ:").grid(row=7, column=0, sticky=tk.W)
-        self.seq_entry = ttk.Entry(frame_filters, width=15)
-        self.seq_entry.grid(row=7, column=1, padx=5)
 
-        # Flags Filter
-        ttk.Label(frame_filters, text="Filter Flags:").grid(row=8, column=0, sticky=tk.W)
-        self.flags_entry = ttk.Entry(frame_filters, width=15)
-        self.flags_entry.grid(row=8, column=1, padx=5)
+        # SYN Filter
+        ttk.Label(frame_filters, text="Filter SYN:").grid(row=5, column=0, sticky=tk.W)
+        self.syn_entry = ttk.Entry(frame_filters, width=15)
+        self.syn_entry.grid(row=5, column=1, padx=5)
+        
+
+        # Offset Filter
+        ttk.Label(frame_filters, text="Filter Offset:").grid(row=8, column=0, sticky=tk.W)
+        self.offset_entry = ttk.Entry(frame_filters, width=15)
+        self.offset_entry.grid(row=8, column=1, padx=5)
 
         # Port Protocol Filter
         ttk.Label(frame_filters, text="Filter Port Protocol:").grid(row=9, column=0, sticky=tk.W)
@@ -86,15 +88,15 @@ class FilterPacketsGUI:
         header_length_filter = self.header_length_entry.get().lower()
         ttl_filter = self.ttl_entry.get().lower()
         ack_filter = self.ack_entry.get().lower()
-        seq_filter = self.seq_entry.get().lower()
-        flags_filter = self.flags_entry.get().lower()
+        syn_filter = self.syn_entry.get().lower()
+        offset_filter = self.offset_entry.get().lower()
         port_protocol_filter = self.port_protocol_entry.get().lower()
         src_port_filter = self.src_port_entry.get().lower()
         dest_port_filter = self.dest_port_entry.get().lower()
 
-        self.main_app.set_filters(protocol_filter, src_ip_filter, dest_ip_filter,
-                                  version_filter, header_length_filter, ttl_filter,
-                                  ack_filter, seq_filter, flags_filter,
+        self.main_app.set_filters(protocol_filter, src_ip_filter, dest_ip_filter, 
+                                  version_filter, header_length_filter, ttl_filter, offset_filter,
+                                  ack_filter, syn_filter, 
                                   port_protocol_filter, src_port_filter, dest_port_filter)
 
 def main():
@@ -104,4 +106,4 @@ def main():
     root.mainloop()
 
 if __name__ == "__main__":
-     main()
+        main()

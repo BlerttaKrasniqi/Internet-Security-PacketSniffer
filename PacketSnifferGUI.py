@@ -1,3 +1,5 @@
+
+
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 import threading
@@ -44,7 +46,7 @@ class PacketSnifferGUI:
         
 
         # ScrolledText widget for displaying packets
-        columns = ("Version", "Header Length", "TTL", "Protocol", "Src IP", "Dest IP", "ACK", "SEQ", "Flags", "Port Protocol", "Src Port", "Dest Port","Data")
+        columns = ("Version", "Header Length", "TTL", "Protocol", "Src IP", "Dest IP","ACK","SYN","Offset", "Port Protocol", "Src Port", "Dest Port")
         self.packet_tree = ttk.Treeview(master, columns=columns, show="headings", selectmode="extended")
         
         for col in columns:
@@ -56,13 +58,13 @@ class PacketSnifferGUI:
         self.packet_tree.heading("Protocol", text="Protocol")
         self.packet_tree.heading("Src IP", text="Src IP")
         self.packet_tree.heading("Dest IP", text="Dest IP")
-        self.packet_tree.heading("ACK", text="ACK")
-        self.packet_tree.heading("SEQ", text="SEQ")
-        self.packet_tree.heading("Flags", text="Flags")
+        self.packet_tree.heading("ACK", text="AKC")
+        self.packet_tree.heading("SYN", text="SYN")
+        self.packet_tree.heading("Offset", text="Offset")
         self.packet_tree.heading("Port Protocol", text="Port Protocol")
         self.packet_tree.heading("Src Port", text="Src Port")
         self.packet_tree.heading("Dest Port", text="Dest Port")
-        self.packet_tree.heading("Data", text="Data")
+
         self.packet_tree.pack(pady=10)
 
         # Adding a vertical scrollbar
@@ -70,7 +72,8 @@ class PacketSnifferGUI:
         self.packet_tree.configure(yscroll=self.scrollbar.set)
         self.packet_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.scrollbar.pack(side=tk.LEFT, fill=tk.Y)
-  
+
+      
 
         self.stop_event = threading.Event()
 
@@ -87,8 +90,8 @@ class PacketSnifferGUI:
         self.header_length_filter = ""
         self.ttl_filter = ""
         self.ack_filter = ""
-        self.seq_filter = ""
-        self.flags_filter = ""
+        self.syn_filter = ""
+        self.offset_filter = ""
         self.port_protocol_filter = ""
         self.src_port_filter = ""
         self.dest_port_filter = ""
@@ -125,7 +128,7 @@ class PacketSnifferGUI:
     
     def set_filters(self, protocol_filter, src_ip_filter, dest_ip_filter, 
                     version_filter, header_length_filter,ttl_filter,
-                    ack_filter,seq_filter,flags_filter,
+                    offset_filter,ack_filter,syn_filter,
                     port_protocol_filter,src_port_filter,dest_port_filter):
         self.protocol_filter = protocol_filter.lower()
         self.src_ip_filter = src_ip_filter.lower()
@@ -134,8 +137,8 @@ class PacketSnifferGUI:
         self.header_length_filter = header_length_filter.lower()
         self.ttl_filter = ttl_filter.lower()
         self.ack_filter = ack_filter.lower()
-        self.seq_filter = seq_filter.lower()
-        self.flags_filter = flags_filter.lower()
+        self.syn_filter = syn_filter.lower()
+        self.offset_filter = offset_filter.lower()
         self.port_protocol_filter = port_protocol_filter.lower()
         self.src_port_filter = src_port_filter.lower()
         self.dest_port_filter = dest_port_filter.lower()
@@ -152,7 +155,7 @@ class PacketSnifferGUI:
             if self.apply_filters(packet_info):
                 self.packet_tree.insert("", tk.END, values=packet_info)
 
-    def apply_filters(self, packet_info, failed):
+    def apply_filters(self, packet_info):
     # Extract packet information
      version = packet_info[0].lower()
      header_length = packet_info[1].lower()
@@ -161,8 +164,8 @@ class PacketSnifferGUI:
      src_ip = packet_info[4].lower()
      dest_ip = packet_info[5].lower()
      ack = packet_info[6].lower()
-     seq = packet_info[7].lower()
-     flags = packet_info[8].lower()
+     syn = packet_info[7].lower()
+     offset = packet_info[8].lower()
      port_protocol = packet_info[9].lower()
      src_port = packet_info[10].lower()
      dest_port = packet_info[11].lower()
@@ -175,16 +178,13 @@ class PacketSnifferGUI:
         (not self.src_ip_filter or self.src_ip_filter in src_ip) and \
         (not self.dest_ip_filter or self.dest_ip_filter in dest_ip) and \
         (not self.ack_filter or self.ack_filter in ack) and \
-        (not self.seq_filter or self.seq_filter in seq) and \
-        (not self.flags_filter or self.flags_filter in flags) and \
+        (not self.syn_filter or self.syn_filter in syn) and \
+        (not self.offset_filter or self.offset_filter in offset) and \
         (not self.port_protocol_filter or self.port_protocol_filter in port_protocol) and \
         (not self.src_port_filter or self.src_port_filter in src_port) and \
         (not self.dest_port_filter or self.dest_port_filter in dest_port):
          # Check if the packet failed and should be displayed
-         if failed:
-             return True
-         else:
-             return True  # Always display packets that pass other filters
+         return True  # Display packets that pass other filters
      return False  # Filter out packets that don't match filter criteria or didn't fail
 
     
@@ -196,9 +196,9 @@ class PacketSnifferGUI:
         self.version_filter = ""
         self.header_length_filter = ""
         self.ttl_filter = ""
-        self.ack_filter = ""
-        self.seq_filter = ""
         self.flags_filter = ""
+        self.ack_filter = ""
+        self.syn_filter = ""
         self.port_protocol_filter = ""
         self.src_port_filter = ""
         self.dest_port_filter = ""
@@ -220,23 +220,21 @@ class PacketSnifferGUI:
         # Clear the stored packets
         self.all_packets = []
 
-
-
-    def update_display(self, packet_details, protocol_info):
-      if packet_details and protocol_info:
-            packet_data = f"{packet_details}, {protocol_info}"
-            # Store all packets
-            self.all_packets.append(packet_data)
-            
-
-            # Apply filters directly within update_display
-            packet_info = packet_data.split(", ")
-            if self.apply_filters(packet_info):
-                # Update the GUI in the main thread
-                self.master.after(0, self._insert_packet, packet_info)
     
 
 
+
+    def update_display(self, packet_details, protocol_info):
+        if packet_details and protocol_info:
+            packet_data = f"{packet_details}, {protocol_info}"
+            packet_info = packet_data.split(", ")
+            self.all_packets.append(packet_data)
+            if self.apply_filters(packet_info):
+                self.packet_tree.insert("", tk.END, values=packet_info)
+
+
+
+    
     def show_packet_details(self, event):
         selected_item = self.packet_tree.selection()
         if selected_item:
@@ -257,4 +255,4 @@ def main():
     root.mainloop()
 
 if __name__ == "__main__":
-  main()
+    main()
